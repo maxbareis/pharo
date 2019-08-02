@@ -91,6 +91,8 @@ BaselineOfMorphic >> baseline: spec [
 		spec package: 'Morphic-Widgets-Windows'.
 		spec package: 'Morphic-Widgets-FastTable'.
 		
+		spec package: 'Morphic-Widgets-Taskbar-Tests'.
+		
 		"Several packages depend on Rubric as a basic Morphic component"
 		spec package: 'Rubric'.
 		
@@ -147,8 +149,7 @@ BaselineOfMorphic >> cleanUpAfterMorphicInitialization [
 	World cleanseOtherworldlySteppers.
 	Smalltalk organization removeEmptyCategories.
 	MCFileBasedRepository flushAllCaches.
-	MCMethodDefinition shutDown. 
-	MCDefinition clearInstances.
+	MCMethodDefinition shutDown.
 	ExternalDropHandler resetRegisteredHandlers.
 	Undeclared removeUnreferencedKeys.
 	Smalltalk globals flushClassNameCache.
@@ -330,7 +331,6 @@ BaselineOfMorphic >> postload: loader package: packageSpec [
 	UIManager default: MorphicUIManager new.
 
 	World displayWorldSafely.
-	World assuredCanvas.
 
 	UIManager default uiProcess resume.
 	PharoDarkTheme beCurrent.

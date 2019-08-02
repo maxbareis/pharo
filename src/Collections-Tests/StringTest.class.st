@@ -65,6 +65,11 @@ StringTest >> anotherValue [
 	^ self nonEmpty anyOne
 ]
 
+{ #category : #coverage }
+StringTest >> classToBeTested [
+	^ String
+]
+
 { #category : #'tests - includes' }
 StringTest >> collection [
 	^ 'ghj'
@@ -361,7 +366,7 @@ StringTest >> secondIndex [
 
 { #category : #running }
 StringTest >> setUp [
-	<compilerOptions: #(#- #optionReadOnlyLiterals)>
+	<compilerOptions: #(- #optionReadOnlyLiterals)>
 	super setUp.
 	string := 'Hi, I am a String'.
 	emptyString := ''.
@@ -1767,6 +1772,11 @@ StringTest >> testSpace [
 	self assert: string equals: ' '
 ]
 
+{ #category : #tests }
+StringTest >> testStoreOn [
+	self assert: (String streamContents: [ :s | 'Foo''Bar' storeOn: s ]) equals: '''Foo''''Bar'''
+]
+
 { #category : #'tests - converting' }
 StringTest >> testSubstrings [
 	| allByteCharacters substring separators |
@@ -1802,7 +1812,7 @@ StringTest >> testSubstrings [
 
 { #category : #tests }
 StringTest >> testTranslateToLowercase [
-	<compilerOptions: #(#- #optionReadOnlyLiterals)>
+	<compilerOptions: #(- #optionReadOnlyLiterals)>
 	
 	self assert: 'test this string' translateToLowercase equals: 'test this string'.
 	self assert: ' Test THIS sTRing' translateToLowercase equals: ' test this string'.
@@ -1813,7 +1823,7 @@ StringTest >> testTranslateToLowercase [
 
 { #category : #tests }
 StringTest >> testTranslateToUppercase [
-	<compilerOptions: #(#- #optionReadOnlyLiterals)>
+	<compilerOptions: #(- #optionReadOnlyLiterals)>
 
 	self assert: 'test this string' translateToUppercase equals: 'TEST THIS STRING'.
 	self assert: ' Test THIS sTRing' translateToUppercase equals: ' TEST THIS STRING'.

@@ -445,8 +445,11 @@ RBParser >> parseErrorNode: aMessageString [
 	"the error at the end means in some cases that the start of the error is before"
 	aMessageString = ''')'' expected'
 		ifTrue: [ errorPosition := source findLastOccurrenceOfString: '(' startingAt: 1 ].
+	aMessageString = '''|'' expected'
+		ifTrue: [ errorPosition := source findLastOccurrenceOfString: '|' startingAt: 1 ].
+	(errorPosition = 0) ifTrue: [ errorPosition := self errorPosition].
 	sourceString := source copyFrom: errorPosition to: source size.
-	^ RBParseErrorNode errorMessage: aMessageString value: sourceString at: self errorPosition
+	^ RBParseErrorNode errorMessage: aMessageString value: sourceString at: errorPosition
 ]
 
 { #category : #accessing }
@@ -690,7 +693,7 @@ RBParser >> parsePragma [
 	self step.
 	pragma := self basicParsePragma.
 	(currentToken isBinary and: [ currentToken value == #> ]) 
-		ifFalse: [ ^ self parserError: '''>'' expected' ].
+		ifFalse: [ ^ self addPragma: (self parserError: '''>'' expected') ].
 	pragma left: start; right: currentToken start.
 	self addPragma: pragma.
 ]
@@ -702,7 +705,7 @@ RBParser >> parsePragmaLiteral [
 			[^currentToken isForByteArray 
 				ifTrue: [self parseLiteralByteArray]
 				ifFalse: [self parseLiteralArray]].
-	currentToken isLiteralToken ifFalse: [self parserError:'Literal constant expected'].
+	currentToken isLiteralToken ifFalse: [^self parserError:'Literal constant expected'].
 	^self parsePrimitiveLiteral
 ]
 
@@ -992,15 +995,13 @@ RBParser >> patchLiteralArrayToken [
 
 { #category : #private }
 RBParser >> patchLiteralMessage [
-	currentToken value == true 
-		ifTrue: 
-			[^currentToken := RBIdentifierToken value: 'true' start: currentToken start].
-	currentToken value == false 
-		ifTrue: 
-			[^currentToken := RBIdentifierToken value: 'false' start: currentToken start].
-	currentToken value isNil 
-		ifTrue: 
-			[^currentToken := RBIdentifierToken value: 'nil' start: currentToken start]
+
+	currentToken value == true
+		ifTrue: [ ^ currentToken := RBIdentifierToken value: 'true' start: currentToken start ].
+	currentToken value == false
+		ifTrue: [ ^ currentToken := RBIdentifierToken value: 'false' start: currentToken start ].
+	currentToken value
+		ifNil: [ ^ currentToken := RBIdentifierToken value: 'nil' start: currentToken start ]
 ]
 
 { #category : #private }

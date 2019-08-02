@@ -29,8 +29,8 @@ Class {
 		'actionPerformedHolder',
 		'askBeforeChangingHolder',
 		'iconHolder',
-		'menuHolder',
-		'shortcutHolder'
+		'shortcutHolder',
+		'contextMenuHolder'
 	],
 	#category : #'Spec-Core-Widgets'
 }
@@ -39,14 +39,6 @@ Class {
 ButtonPresenter class >> adapterName [
 
 	^ #ButtonAdapter
-]
-
-{ #category : #example }
-ButtonPresenter class >> example [
-	<sampleInstance>
-	^ self new
-		openWithSpec;
-		label: 'Click me'
 ]
 
 { #category : #specs }
@@ -81,18 +73,16 @@ ButtonPresenter >> addShortcutTipFor: aString [
 
 { #category : #private }
 ButtonPresenter >> addShortcutTipFor: aCharacter on: aString [
+
 	| index text |
-	
-	aString isNil ifTrue: [ ^ nil ].
+
+	aString ifNil: [ ^ nil ].
 	text := aString asText.
 	aCharacter ifNil: [ ^ text ].
 	index := aString asLowercase indexOf: aCharacter asLowercase.
 	index isZero ifTrue: [ ^ text ].
-	
 	^ text
-		addAttribute: (TextEmphasis underlined) 
-		from: index
-		to: index;
+		addAttribute: TextEmphasis underlined from: index to: index;
 		yourself
 ]
 
@@ -106,6 +96,29 @@ ButtonPresenter >> askBeforeChanging [
 ButtonPresenter >> askBeforeChanging: aBoolean [
 
 	askBeforeChangingHolder value: aBoolean
+]
+
+{ #category : #simulating }
+ButtonPresenter >> click [
+
+	"I emulate the click from the presenter point of view.
+	Of course if the button is disabled, I do nothing, like in real life!!
+	If you want to emulate other stuff use performAction"
+	
+	self isEnabled ifFalse: [ ^ self ].
+	^ self performAction
+]
+
+{ #category : #api }
+ButtonPresenter >> contextMenu [
+		
+	^ contextMenuHolder value
+]
+
+{ #category : #api }
+ButtonPresenter >> contextMenu: aMenu [
+		
+	contextMenuHolder value: aMenu
 ]
 
 { #category : #'private-focus' }
@@ -166,22 +179,20 @@ ButtonPresenter >> initialize [
 	actionPerformedHolder := nil asValueHolder.
 	askBeforeChangingHolder := false asValueHolder.
 	shortcutHolder := nil asValueHolder.
+	contextMenuHolder := nil asValueHolder.	
 	
 	labelHolder whenChangedDo: [ self changed: #label ].
 	fontHolder whenChangedDo: [ self changed: #font ].
 	iconHolder whenChangedDo: [ self changed: #label ].
 	stateHolder whenChangedDo: [ self changed: #state ].
-	askBeforeChangingHolder whenChangedDo: [:newValue | self changed: { #askBeforeChanging: . newValue} ].
+	contextMenuHolder whenChangedDo: [ self withAdapterDo: #updateMenu ].
+	askBeforeChangingHolder whenChangedDo: [:newValue | 
+		self changed: { #askBeforeChanging: . newValue} ].
 	shortcutHolder whenChangedDo: [ :newShortcut :oldShortcut |
 		self unregisterShortcut: oldShortcut.
 		self registerShortcut: newShortcut.
 		self changed: #label ].
 	
-	menuHolder := MenuPresenter new asValueHolder.	
-	menuHolder whenChangedDo: [ :aMenuModel :oldMenu | 
-		(oldMenu isNil or: [ oldMenu isBlock ]) ifFalse: [ oldMenu neglect: self ].
-		(aMenuModel isNil or: [ aMenuModel isBlock ]) ifFalse: [ aMenuModel applyTo: self ] ].
-		
 	self bindKeyCombination: Character space toAction: [ self action ].
 	
 	self color: nil.
@@ -204,13 +215,23 @@ ButtonPresenter >> label: aStringOrImageMorph [
 { #category : #api }
 ButtonPresenter >> menu [
 
-	^ menuHolder value
+	self 
+		deprecated: 'Use #contextMenu instead.' 
+		transformWith: '`@receiver menu' 
+						-> '`@receiver contextMenu'.
+
+	^ self contextMenu
 ]
 
 { #category : #api }
 ButtonPresenter >> menu: aMenu [
 
-	menuHolder value: aMenu
+	self 
+		deprecated: 'Use #contextMenu instead.' 
+		transformWith: '`@receiver menu: `@argument' 
+						-> '`@receiver contextMenu: `@argument'.
+		
+	self contextMenu: aMenu
 ]
 
 { #category : #morphic }
@@ -289,6 +310,12 @@ ButtonPresenter >> whenActionPerformedDo: aBlock [
 	actionPerformedHolder whenChangedDo: aBlock
 ]
 
+{ #category : #'API - events' }
+ButtonPresenter >> whenActivatedDo: aBlockClosure [ 
+	
+	^ self whenActionPerformedDo: aBlockClosure 
+]
+
 { #category : #'api-events' }
 ButtonPresenter >> whenFontChangedDo: aBlock [
 	"set a block to perform after that the button has been aclicked, and its action performed"
@@ -307,6 +334,12 @@ ButtonPresenter >> whenLabelChangedDo: aBlock [
 	"set a block to perform after that the button has been aclicked, and its action performed"
 
 	labelHolder whenChangedDo: aBlock
+]
+
+{ #category : #'api-events' }
+ButtonPresenter >> whenMenuChangedDo: aBlock [
+ 
+	contextMenuHolder whenChangedDo: aBlock
 ]
 
 { #category : #'api-events' }

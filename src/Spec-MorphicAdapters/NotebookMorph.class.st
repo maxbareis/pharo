@@ -81,6 +81,13 @@ NotebookMorph >> buildLabelFrom: aStringOrMorph withAction: aMorph [
 			innerLabel ]
 ]
 
+{ #category : #testing }
+NotebookMorph >> hasPageWithModel: anObject [
+	"an utility to easy know if the notebook has a page for a model"
+
+	^ self pages anySatisfy: [ :each | each model = anObject ]
+]
+
 { #category : #accessing }
 NotebookMorph >> headerMorph [
 	^ headerMorph
@@ -177,15 +184,17 @@ NotebookMorph >> pageWithModel: anObject [
 NotebookMorph >> removePage: aPage [
 	| removedPageIndex |
 	removedPageIndex := self pages indexOf: aPage.
-	self announcer suspendAllWhile: [ super removePage: aPage ].
-	self announcer announce: 
-		(LazyTabPageRemoved new 
-			tabs: self; 
-			page: aPage; 
-			pageIndex: removedPageIndex;
-			newIndex: self tabSelectorMorph selectedIndex).
-	self pages isEmpty 
-		ifTrue: [ self contentMorph removeAllMorphs ]
+
+	self suspendAnnouncementsDuring: [ super removePage: aPage ].
+
+	self announcer
+		announce:
+			(LazyTabPageRemoved new
+				tabs: self;
+				page: aPage;
+				pageIndex: removedPageIndex;
+				newIndex: self tabSelectorMorph selectedIndex).
+	self pages isEmpty ifTrue: [ self contentMorph removeAllMorphs ]
 ]
 
 { #category : #private }
@@ -194,31 +203,43 @@ NotebookMorph >> removePageIndex: anInteger [
 ]
 
 { #category : #private }
+NotebookMorph >> suspendAnnouncementsDuring: aBlock [
+	| subscriptions |
+	subscriptions := self announcer subscriptions subscriptions.
+	subscriptions do: [ :sub | self announcer unsubscribe: sub ].
+	aBlock value.
+	subscriptions do: [ :sub | self announcer basicSubscribe: sub ]
+]
+
+{ #category : #private }
 NotebookMorph >> updatePageIndex: index [
+
 	"Change to the given page index, update the toolbar and send the announcement"
-	| page oldPage |
-	
-	index = 0 ifTrue: [ ^ self ].
-	
+
+	| oldPage |
+
+	index = 0
+		ifTrue: [ ^ self ].
 	oldPage := self tabSelectorMorph selectedTab.
-	page := self pageMorph.
-	page isNil
-		ifTrue: [
-			self contentMorph addMorph: (self pageAt: index).]
-		ifFalse: [ | pageBounds |
+	self pageMorph
+		ifNil: [ self contentMorph addMorph: ( self pageAt: index ) ]
+		ifNotNil: [ :page | | pageBounds |
+
 			pageBounds := self pageMorph bounds.
-			self contentMorph replaceSubmorph: page by: (self pageAt: index).
-			self flag: 'Without setting here the bounds the pange moves a few pizels when refreshing the inspector'.
+			self contentMorph replaceSubmorph: page by: ( self pageAt: index ).
+			self
+				flag: 'Without setting here the bounds the pange moves a few pizels when refreshing the inspector'.
 			self pageMorph bounds: pageBounds.
-			self pageMorph layoutChanged ].
-		
+			self pageMorph layoutChanged
+			].
 	self headerMorph layoutChanged.
 	self pageMorph layoutChanged.
-	self adoptPaneColor: (self owner ifNil: [self]) paneColor.
-	(self tabSelectorMorph tabs at: index) font: self tabSelectorMorph font.
-	
-	self announcer announce: (NotebookPageChanged new 
-		page: (self pages at: index); 
-		oldPage: oldPage; 
-		pageIndex: index)
+	self adoptPaneColor: ( self owner ifNil: [ self ] ) paneColor.
+	( self tabSelectorMorph tabs at: index ) font: self tabSelectorMorph font.
+	self announcer
+		announce:
+			( NotebookPageChanged new
+				page: ( self pages at: index );
+				oldPage: oldPage;
+				pageIndex: index )
 ]

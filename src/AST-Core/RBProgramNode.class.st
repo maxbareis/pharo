@@ -259,7 +259,7 @@ RBProgramNode >> copyList: matchNodes inContext: aDictionary [
 { #category : #accessing }
 RBProgramNode >> debugHighlightRange [
 
-	^ self debugHighlightStart to: self debugHighlightStop .
+	^ self debugHighlightStart to: self debugHighlightStop
 ]
 
 { #category : #accessing }
@@ -293,12 +293,12 @@ RBProgramNode >> do: aBlock [
 
 { #category : #generation }
 RBProgramNode >> dump [
-	^  String streamContents: [:s | self dumpOn: s]
-]
+	"Generate a literal expression that recreates the receiver"
 
-{ #category : #generation }
-RBProgramNode >> dumpOn: aStream [
-	self subclassResponsibility 
+	| visitor |
+	visitor := RBDumpVisitor new.
+	self acceptVisitor: visitor.
+	^ visitor stream contents
 ]
 
 { #category : #comparing }
@@ -334,6 +334,14 @@ RBProgramNode >> formattedCode [
 { #category : #accessing }
 RBProgramNode >> formatterClass [
 	^ self class formatterClass
+]
+
+{ #category : #testing }
+RBProgramNode >> hasComments [
+	"Answer whether the receiver as comments"
+	
+	^ self comments isNotEmpty
+	
 ]
 
 { #category : #testing }
@@ -625,6 +633,17 @@ RBProgramNode >> newSource [
 	^self formattedCode
 ]
 
+{ #category : #'node access' }
+RBProgramNode >> nodeForOffset: anInteger [
+	| children |
+	"choosing the best node on the specific offset"
+	children := self children.
+	"when we are on a leaf, we take the leaf node"
+	(children isEmpty) ifTrue: [ (self sourceInterval includes: anInteger) ifTrue: [^self]].
+	"if the node has children then we check the children"
+	children do: [:each | (each sourceInterval includes: anInteger) ifTrue: [^each nodeForOffset: anInteger] ].
+]
+
 { #category : #iterating }
 RBProgramNode >> nodesDo: aBlock [ 
 	aBlock value: self.
@@ -683,7 +702,7 @@ RBProgramNode >> propertyAt: aKey ifAbsent: aBlock [
 	"Answer the property value associated with aKey or, if aKey isn't found, answer the result of evaluating aBlock."
 	
 	^ properties 
-		ifNil: [ aBlock value ]
+		ifNil: aBlock
 		ifNotNil: [ properties at: aKey ifAbsent: aBlock ]
 ]
 
@@ -698,7 +717,7 @@ RBProgramNode >> propertyAt: aKey ifAbsentPut: aBlock [
 RBProgramNode >> propertyAt: aKey ifPresent: aPresentBlock ifAbsent: anAbsentBlock [
 	"Answer the property value associated with aKey or, if aKey is found, answer the result of evaluating aPresentBlock, else evaluates anAbsentBlock."
 
-	^ properties ifNil: [ anAbsentBlock ] ifNotNil: [ properties at: aKey ifPresent: aPresentBlock ifAbsent: anAbsentBlock ]
+	^ properties ifNil: anAbsentBlock ifNotNil: [ properties at: aKey ifPresent: aPresentBlock ifAbsent: anAbsentBlock ]
 ]
 
 { #category : #properties }

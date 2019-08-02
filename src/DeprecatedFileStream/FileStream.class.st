@@ -291,6 +291,10 @@ FileStream class >> flushAndVoidStdioFiles [
 FileStream class >> forceNewFileNamed: fileName [
  	"Create a new file with the given name, and answer a stream opened for writing on that file. If the file already exists, delete it without asking before creating the new file."
 
+	SessionManager default currentSession isReadOnlyAccessMode ifTrue: [ ((CannotDeleteFileException fileName: fileName)
+		messageText: 'Could not delete the old version of file ' , fileName) signal.
+		^ NullStream new ].
+
 	^self concreteStream forceNewFileNamed: fileName
 ]
 
@@ -432,7 +436,7 @@ FileStream class >> standardIOStreamNamed: moniker forWrite: forWrite [
 	
 	| index |
 	
-	self flag: #todo. "This is an ugly hack, while waiting for a real fix for windows. There  several problems with this approach, but it allow us to run tests, etc."
+	"This is an ugly hack, while waiting for a real fix for windows. There  several problems with this approach, but it allow us to run tests, etc."
 	Smalltalk os isWin32 
 		ifTrue: [ 
 			[ ^ MultiByteFileStream forceNewFileNamed: moniker asString ]
@@ -778,7 +782,7 @@ FileStream >> reopen [
 
 ]
 
-{ #category : #positioning }
+{ #category : #initialization }
 FileStream >> reset [
 	"Set the current character position to the beginning of the file."
 

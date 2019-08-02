@@ -240,17 +240,12 @@ Object class >> whatIsAPrimitive [
 Object >> -> anObject [
 	"Answer an Association between self and anObject"
 	"the code of Association>>#key:value: is inline here for speed"
-	"The following example creates an association whose key is number 1 and value string 'one'.
-	1 -> 'one'
-	>>> 1 -> 'one'
-
-	(1 -> 'one') key
-	>>> 1
-
-	(1 -> 'one') value
-	>>> 'one'
+	"The following example creates an association whose key is number 1 and value string 'one'."
+	"(1 -> 'one') >>> 1 -> 'one'"
+	"(1 -> 'one') key >>> 1"
+	"(1 -> 'one') value >>> 'one'"
 	
-	Note that key and value can be ANY object."
+	"Note that key and value can be ANY object."
 	
 	^Association basicNew key: self value: anObject
 ]
@@ -365,13 +360,14 @@ Object >> asString [
 Object >> assert: aBlock [
 	"Throw an assertion error if aBlock does not evaluates to true.
 	We check for true explicitly to make the assertion fail for non booleans"
+	<debuggerCompleteToSender>
 	self assert: aBlock description: 'Assertion failed'.
 ]
 
 { #category : #asserting }
 Object >> assert: aBlock description: aStringOrBlock [
 	"Throw an assertion error if aBlock does not evaluates to true."
-	
+	<debuggerCompleteToSender>
 	aBlock value 
 		ifFalse: [ AssertionFailure signal: aStringOrBlock value ]
 ]
@@ -499,24 +495,6 @@ Object >> beWritableObject [
 	 primitive to fail with a #'no modification' error code.
 	 Set the read-only flag of the receiver to false and answer the previous vaue of the flag."
 	^self setIsReadOnlyObject: false
-]
-
-{ #category : #'reflective operations' }
-Object >> becomeForward: otherObject [ 
-	"Primitive. All variables in the entire system that used to point
-	to the receiver now point to the argument.
-	Fails if either argument is a SmallInteger."
-
-	{self} elementsForwardIdentityTo: {otherObject}
-]
-
-{ #category : #'reflective operations' }
-Object >> becomeForward: otherObject copyHash: copyHash [
-	"Primitive. All variables in the entire system that used to point to the receiver now point to the argument.
-	If copyHash is true, the argument's identity hash bits will be set to those of the receiver.
-	Fails if either argument is a SmallInteger."
-
-	{self} elementsForwardIdentityTo: {otherObject} copyHash: copyHash
 ]
 
 { #category : #binding }
@@ -922,21 +900,20 @@ Object >> explicitRequirement [
 	originalMethod := callingContext method.
 	originalMethod isFromTrait
 		ifFalse: errorBlock.
-		
 	originalReceiver := callingContext receiver.
 	originalSelector := originalMethod selector.
 	originalArguments := callingContext arguments.
-	
 	originalReceiver class superclass
 		withAllSuperclassesDo: [ :superClass | 
 			superClass
 				compiledMethodAt: originalSelector
 				ifPresent: [ :method | 
 					(method isProvided or: [ method isFromTrait not ])
-						ifTrue: [ 
-							callingContext return: (method valueWithReceiver: originalReceiver arguments: originalArguments) ] ]
-				ifAbsent: [  ] ].
-
+						ifTrue: [ callingContext
+								return:
+									(method
+										valueWithReceiver: originalReceiver
+										arguments: originalArguments) ] ] ].
 	errorBlock value
 ]
 
@@ -1098,16 +1075,24 @@ Object >> instVarAt: index put: anObject [
 
 { #category : #introspection }
 Object >> instVarNamed: aString [
-	"Return the value of the instance variable in me with that name.  Slow and unclean, but very useful. "
+	"Return the value of the instance variable in me with that name.  Slow, but very useful.
+	We support here all slots (even non indexed) but raise a backward compatible exception"
 
-	^ self instVarAt: (self class instVarIndexFor: aString asString ifAbsent: [ InstanceVariableNotFound signalFor: aString asString ])
+	^ self class
+		slotNamed: aString
+		ifFound: [ :slot | slot read: self ]
+		ifNone: [ InstanceVariableNotFound signalFor: aString asString ]
 ]
 
 { #category : #introspection }
 Object >> instVarNamed: aString put: aValue [
-	"Store into the value of the instance variable in me of that name. Slow and unclean, but very useful. "
+	"Store into the value of the instance variable in me of that name. Slow, but very useful.
+	We support here all slots (even non indexed) but raise a backward compatible exception"
 
-	^ self instVarAt: (self class instVarIndexFor: aString asString ifAbsent: [ InstanceVariableNotFound signalFor: aString asString ]) put: aValue
+	^ self class
+		slotNamed: aString
+		ifFound: [ :slot | slot write: aValue to: self ]
+		ifNone: [ InstanceVariableNotFound signalFor: aString asString ]
 ]
 
 { #category : #testing }
@@ -1223,12 +1208,11 @@ Object >> isInterval [
 ]
 
 { #category : #'class membership' }
-Object >> isKindOf: aClass [ 
-	"Answer whether the class, aClass, is a superclass or class of the receiver."
+Object >> isKindOf: aClass [
+	"Answer whether the class, aClass, is a superclass or class of the receiver.
+	The current implemementation allows for a Trait to be used as argument"
 
-	self class == aClass
-		ifTrue: [^true]
-		ifFalse: [^self class inheritsFrom: aClass]
+	^ self class == aClass or: [ self class inheritsFrom: aClass ]
 ]
 
 { #category : #testing }
@@ -1672,15 +1656,15 @@ Object >> perform: selector withArguments: argArray inSuperclass: lookupClass [
 	but with the supplied superclass instead.  It will fail if lookupClass
 	cannot be found among the receiver's superclasses.
 	Primitive. Essential. See Object documentation whatIsAPrimitive."
-	
+
 	<reflective: #object:performMessageInSuperclass:>
 	<primitive: 100>
-	(selector isSymbol)
-		ifFalse: [^ self error: 'selector argument must be a Symbol'].
-	(selector numArgs = argArray size)
-		ifFalse: [^ self error: 'incorrect number of arguments'].
-	(self class == lookupClass or: [self class inheritsFrom: lookupClass])
-		ifFalse: [^ self error: 'lookupClass is not in my inheritance chain'].
+	selector isSymbol
+		ifFalse: [ ^ self error: 'selector argument must be a Symbol' ].
+	selector numArgs = argArray size
+		ifFalse: [ ^ self error: 'incorrect number of arguments' ].
+	(self class includesBehavior: lookupClass)
+		ifFalse: [ ^ self error: 'lookupClass is not in my inheritance chain' ].
 	self primitiveFailed
 ]
 
@@ -1809,7 +1793,7 @@ Object >> readSlot: aSlot [
 
 { #category : #introspection }
 Object >> readSlotNamed: aName [
-	^self readSlot: (self class slotNamed: aName)
+	^(self class slotNamed: aName) read: self
 ]
 
 { #category : #dependencies }
@@ -1880,8 +1864,9 @@ Object >> setPinned: aBoolean [
 { #category : #pinning }
 Object >> setPinnedInMemory: aBoolean [
 	"The VM's garbage collector routinely moves objects as it reclaims and compacts
-	 memory. But it can also pin an object so that it will not be moved, which can make
-	 it easier to pass objects out through the FFI.  Objects are unpinnned when created.
+	 memory. But it can also pin an object so that it will not be moved around in memory,
+    while still being reclamable by the garbage collector. This can make
+	 it easier to pass objects out through the FFI. Objects are unpinnned when created.
 	 This primitive either pins or unpins an object, and answers if it was already pinned."
 	<primitive: 184 error: ec>
 	^self primitiveFailed

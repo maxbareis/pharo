@@ -28,19 +28,22 @@ LiteralVariable class >> checkValidName: aString [
 		ifFalse: [InvalidGlobalName signal: 'Class name does not start with a valid Global Var Initial' for: aString]"
 ]
 
-{ #category : #'class initialization' }
-LiteralVariable class >> initialize [
-	Properties
-		ifNil: [ self initializeProperties ]
-		ifNotNil: [ | newDict | 
-			newDict := WeakIdentityKeyDictionary newFrom: Properties.
-			newDict rehash.
-			Properties := newDict ]
+{ #category : #'gt-inspector-extension' }
+LiteralVariable class >> gtInspectorAllVariablesIn: composite [
+ 	"This provides a list of all defined Class or Global Variables"
+ 	<gtInspectorPresentationOrder: 20>
+ 	composite list 
+ 		title: 'All Defined Variables';
+ 		display: [ self allSubclasses sorted: #name ascending ];
+ 		tags: [ :each | { each package name } ];
+ 		when: [self == LiteralVariable  ].
 ]
 
 { #category : #'class initialization' }
-LiteralVariable class >> initializeProperties [
-	Properties := WeakIdentityKeyDictionary new.
+LiteralVariable class >> initialize [
+	Properties := Properties
+		ifNil: [ WeakIdentityKeyDictionary new. ]
+		ifNotNil: [ (WeakIdentityKeyDictionary newFrom: Properties) rehash]
 ]
 
 { #category : #'instance creation' }
@@ -75,7 +78,7 @@ LiteralVariable >> emitStore: aMethodBuilder [
 		addTemp: tempName;
 		storeTemp: tempName;
 		popTop;
-		pushLiteralVariable: #global -> self;
+		pushLiteralVariable: (AdditionalBinding key: #global value: self);
 		pushTemp: tempName;
 		send: #write:
 ]
@@ -83,7 +86,7 @@ LiteralVariable >> emitStore: aMethodBuilder [
 { #category : #'code generation' }
 LiteralVariable >> emitValue: aMethodBuilder [
 	aMethodBuilder
-		pushLiteralVariable: #global -> self;
+		pushLiteralVariable: (AdditionalBinding key: #global value: self);
 		send: #read
 ]
 
@@ -121,14 +124,14 @@ LiteralVariable >> isReadIn: aCompiledCode [
 ]
 
 { #category : #testing }
-LiteralVariable >> isSelfEvaluating [
-	^ self key isSelfEvaluating and: [self value isSelfEvaluating]
+LiteralVariable >> isReferenced [
+	"my subclasses override this if they can be referenced in code"
+	^false
 ]
 
 { #category : #testing }
-LiteralVariable >> isSpecial [
-	"I am more than just a backward compatible Global"
-	^true
+LiteralVariable >> isSelfEvaluating [
+	^ self key isSelfEvaluating and: [self value isSelfEvaluating]
 ]
 
 { #category : #testing }
@@ -139,6 +142,13 @@ LiteralVariable >> isWrittenIn: aCompiledCode [
 { #category : #accessing }
 LiteralVariable >> name: aString [ 
 	self key: aString asSymbol
+]
+
+{ #category : #testing }
+LiteralVariable >> needsFullDefinition [
+	"only ClassVariable can use a simplified definition"
+
+	^ self class ~= ClassVariable
 ]
 
 { #category : #properties }

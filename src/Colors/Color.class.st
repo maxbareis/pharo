@@ -1045,6 +1045,7 @@ Color >> asColorref [
 	"Convert the receiver into a colorref, i.e, a number embedding r,g,b on 24 bits"
 	"(Color red asColorref) >>> 229"
 	"(Color white asColorref) >>>  16777215"
+	
 	^(self red * 255) asInteger + ((self green * 255) asInteger << 8) + ((self blue * 255) asInteger << 16)
 ]
 
@@ -1248,7 +1249,7 @@ Color >> colorForInsets [
 ]
 
 { #category : #conversions }
-Color >> contrastingColor [
+Color >> contrastingBlackAndWhiteColor [
 	"Answer black or white depending on the luminance."
 
 	self isTransparent ifTrue: [ ^ self class black].
@@ -1266,14 +1267,6 @@ Color >> contrastingColorAdjustment [
 	^ self luminance > 0.5
 		ifTrue: [ self darker ] 
 		ifFalse:  [ self lighter ]
-]
-
-{ #category : #conversions }
-Color >> contrastingForegroundColor [
-        "Make a foreground color contrasting with me"
-        ^self luminance >= 0.5
-                ifTrue: [self class black]
-                ifFalse: [self class white]
 ]
 
 { #category : #transformations }
@@ -2064,16 +2057,20 @@ Color >> storeArrayValuesOn: aStream [
 
 { #category : #printing }
 Color >> storeOn: aStream [
-	self isTransparent ifTrue: [^ aStream nextPutAll: '(Color transparent)'].
-
+	self isTransparent
+		ifTrue: [ ^ aStream nextPutAll: '(Color transparent)' ].
 	aStream
-		nextPutAll: '(' , self class name;
-		nextPutAll: ' r: '; print: (self red roundTo: 0.001);
-		nextPutAll: ' g: '; print: (self green roundTo: 0.001);
-		nextPutAll: ' b: '; print: (self blue roundTo: 0.001);
-		nextPutAll: ' alpha: '; print: (self alpha roundTo: 0.001);
-		nextPutAll: ')'.
-
+		nextPutAll: '(';
+		nextPutAll: self class name;
+		nextPutAll: ' r: ';
+		print: self red;
+		nextPutAll: ' g: ';
+		print: self green;
+		nextPutAll: ' b: ';
+		print: self blue;
+		nextPutAll: ' alpha: ';
+		print: self alpha;
+		nextPutAll: ')'
 ]
 
 { #category : #transformations }

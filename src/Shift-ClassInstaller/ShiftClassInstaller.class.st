@@ -67,19 +67,36 @@ ShiftClassInstaller >> comment: newClass [
 	builder comment ifNotNil: [ newClass classComment: builder comment stamp: builder commentStamp ]
 ]
 
+{ #category : #building }
+ShiftClassInstaller >> copyClassSlotsFromExistingClass [
+	self builder layoutDefinition copyClassSlotsIfNeeded: oldClass class slots
+]
+
 { #category : #copying }
 ShiftClassInstaller >> copyObject: oldObject to: newClass [
-	| newObject |
+	| newObject hiddenSlots |
 	
-	newObject := newClass isVariable
+	newObject := (newClass isVariable and: [oldClass isVariable])
 		ifTrue: [ newClass basicNew: oldObject size ]
 		ifFalse: [ newClass basicNew ].
 
+	"first initalize all hidden slots"
+	hiddenSlots := newClass classLayout allSlots reject: [:each | each isVisible].
+	hiddenSlots do: [ :newSlot | 
+			newSlot initialize: newObject.
+			oldObject class slotNamed: newSlot name ifFound: [ :oldSlot | 
+				newSlot write: (oldSlot read: oldObject) to: newObject ]  ].
+
+	"the initalize all visible slots"
 	newClass allSlots do: [ :newSlot | oldObject class slotNamed: newSlot name ifFound: [ :oldSlot | 
-			newSlot write: (oldSlot read: oldObject) to: newObject ] ].
+			newSlot initialize: newObject.
+		   newSlot write: (oldSlot read: oldObject) to: newObject ] ].
 
 	newClass isVariable
 		ifTrue: [ 1 to: oldObject basicSize do: [ :offset | newObject basicAt: offset put: (oldObject basicAt: offset) ] ].
+
+	"Clearing the readonly-ness in the old objects so the become is able to work"
+	oldObject setIsReadOnlyObject: false.
 
 	^ newObject
 ]
@@ -100,13 +117,17 @@ ShiftClassInstaller >> fixSlotScope: newClass [
 ShiftClassInstaller >> initialize [
 	super initialize.
 	builder := ShiftClassBuilder new.
-	builder buildEnvironment: ShSmalltalkGlobalsEnvironment new.	
+	builder buildEnvironment: ShSmalltalkGlobalsEnvironment new	
 	
 	
 ]
 
 { #category : #building }
 ShiftClassInstaller >> installInEnvironment: newClass [
+
+	"I only install if there is a name / non anonymous"
+	builder name ifNil: [ ^ self ].
+
 	"I only install in the environment if there is not oldClass installed."
 	(self installingEnvironment hasClassNamed: builder name) ifFalse:[
 		self installingEnvironment installClass: newClass withName: builder name.
@@ -119,6 +140,10 @@ ShiftClassInstaller >> installInEnvironment: newClass [
 
 { #category : #building }
 ShiftClassInstaller >> installSubclassInSuperclass: newClass [
+
+	"I only install if there is a name / non anonymous"
+	builder name ifNil: [ ^ self ].
+
 	newClass superclass addSubclass: newClass
 ]
 
@@ -148,9 +173,8 @@ ShiftClassInstaller >> make [
 
 	[	
 		builder oldClass: oldClass.
+		self copyClassSlotsFromExistingClass.
 		newClass := builder build.
-
-		self validateReadOnlyInstancesOf: oldClass.
 
 		self installInEnvironment: newClass.
 
@@ -158,7 +182,7 @@ ShiftClassInstaller >> make [
 	
 		builder builderEnhancer beforeMigratingClass: builder installer: self.
 
-		self migrateClassTo: newClass.
+		builder builderEnhancer migrateToClass: newClass installer: self.
 
 		builder builderEnhancer afterMigratingClass: builder installer: self.	
 
@@ -187,14 +211,6 @@ ShiftClassInstaller >> make: aBlock [
 	^self make
 ]
 
-{ #category : #building }
-ShiftClassInstaller >> makeFromString: aStringClassDefinition [
-	
-	builder buildFromAST: (CDClassDefinitionParser parse: aStringClassDefinition).
-
-	^self make
-]
-
 { #category : #migrating }
 ShiftClassInstaller >> migrateClassTo: newClass [
 	| slotsToMigrate |
@@ -214,20 +230,28 @@ ShiftClassInstaller >> migrateClassTo: newClass [
 	
 	[ 	
 		(self builder hasToMigrateInstances) 
-			ifTrue: [self migrateInstancesTo: newClass].
+			ifTrue: [ builder builderEnhancer migrateInstancesTo: newClass installer: self ].
 
 		{ oldClass. builder oldMetaclass } elementsForwardIdentityTo: { newClass. builder newMetaclass }.	
-	] valueUninterruptably.
+	] valueUninterruptably
 
 ]
 
 { #category : #migrating }
 ShiftClassInstaller >> migrateInstancesTo: newClass [
-	| oldObjects newObjects |
+	| oldObjects newObjects readOnlyOldObjectsFlags |
 	oldObjects := oldClass allInstances.
-	newObjects := oldObjects collect: [ :e | self copyObject: e to: newClass ].
+	oldObjects ifEmpty: [ ^ self ].
+	
+	readOnlyOldObjectsFlags := OrderedCollection new: oldObjects size.
 
-	oldObjects elementsForwardIdentityTo: newObjects copyHash: true
+	newObjects := oldObjects collect: [ :e | 
+		(readOnlyOldObjectsFlags add: e isReadOnlyObject).
+		self copyObject: e to: newClass ].
+
+	oldObjects elementsForwardIdentityTo: newObjects copyHash: true.
+	
+	newObjects with: readOnlyOldObjectsFlags do: [ :anObject :aFlag | anObject setIsReadOnlyObject: aFlag ] 
 ]
 
 { #category : #notifications }
@@ -249,7 +273,6 @@ ShiftClassInstaller >> oldClass: anObject [
 ShiftClassInstaller >> recategorize: aClass to: newCategory [
 	| oldCategory |
 	oldCategory := oldClass ifNotNil:[oldClass basicCategory].
-	newCategory ifNil:  [ ^self ].
 	oldCategory == newCategory asSymbol
 		ifTrue: [ ^ self ].
 
@@ -276,14 +299,4 @@ ShiftClassInstaller >> remake: aClass [
 { #category : #building }
 ShiftClassInstaller >> updateBindings: aBinding of: newClass [
 	newClass methods do: [ :e | e classBinding: aBinding ]
-]
-
-{ #category : #validating }
-ShiftClassInstaller >> validateReadOnlyInstancesOf: aClass [
-	
-	builder hasToMigrateInstances ifFalse: [ ^ self ].
-	
-	(aClass allSubInstances anySatisfy: [ :anInstance | anInstance isReadOnlyObject ]) ifTrue:[
-		self error: 'There are read only instances of the class to modify. Aborting the creation of classes'
-	]
 ]

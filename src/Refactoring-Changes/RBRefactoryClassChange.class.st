@@ -35,7 +35,7 @@ RBRefactoryClassChange >> asUndoOperation [
 { #category : #accessing }
 RBRefactoryClassChange >> changeClass [
 	| class |
-	class := Smalltalk globals at: self changeClassName ifAbsent: [ ^ nil ].
+	class := onSystemDictionary at: self changeClassName ifAbsent: [ ^ nil ].
 	^ isMeta ifTrue: [ class classSide ] ifFalse: [ class ]
 ]
 
@@ -51,9 +51,10 @@ RBRefactoryClassChange >> changeClassName [
 ]
 
 { #category : #accessing }
-RBRefactoryClassChange >> changeClassName: aSymbol [ 
+RBRefactoryClassChange >> changeClassName: aSymbol [
+
 	className := aSymbol.
-	isMeta isNil ifTrue: [ isMeta := false ]
+	isMeta ifNil: [ isMeta := false ]
 ]
 
 { #category : #printing }

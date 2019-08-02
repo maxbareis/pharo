@@ -1,6 +1,3 @@
-"
-I am the Class Definition as a Node, i represent a class and contains all the information for class creation.
-"
 Class {
 	#name : #CDClassDefinitionNode,
 	#superclass : #CDBehaviorDefinitionNode,
@@ -26,7 +23,7 @@ CDClassDefinitionNode class >> on: aRBMessageNode [
 { #category : #accessing }
 CDClassDefinitionNode >> binding [ 
 	Transcript show: '.'.
-	^ self class environment associationAt: self className ifAbsent: [nil -> self].
+	^ self class environment associationAt: self className ifAbsent: [LiteralVariable key: nil value: self].
 ]
 
 { #category : #testing }
@@ -51,7 +48,7 @@ CDClassDefinitionNode >> packageNameNode [
 CDClassDefinitionNode >> packageNameNode: aNode astNode: astNode [
 
 	packageNameNode := aNode.
-	children add: aNode.
+	self addChild: aNode.
 ]
 
 { #category : #accessing }
@@ -63,7 +60,7 @@ CDClassDefinitionNode >> sharedPools [
 { #category : #accessing }
 CDClassDefinitionNode >> sharedPools: aCollection [ 
 	sharedPools := aCollection.
-	children addAll: aCollection
+	aCollection do: [ :each | self addChild: each ]
 ]
 
 { #category : #accessing }
@@ -74,16 +71,14 @@ CDClassDefinitionNode >> sharedSlotNodes [
 
 { #category : #accessing }
 CDClassDefinitionNode >> sharedSlots [
-	sharedSlotNodes ifNil:[
-		sharedSlotNodes := Array new.
-		].
-	^ sharedSlotNodes
+	^ sharedSlotNodes ifNil:[ sharedSlotNodes := Array new ]
+	
 ]
 
 { #category : #accessing }
 CDClassDefinitionNode >> sharedSlots: aCollection [ 
 	sharedSlotNodes := aCollection.
-	children addAll: aCollection
+	aCollection do: [ :each | self addChild: each ]
 ]
 
 { #category : #accessing }
@@ -102,7 +97,7 @@ CDClassDefinitionNode >> superclassName: aName astNode: astNode [
 	
 	superclassName := aName.
 	superclassNameNode := astNode.
-	children add: astNode.
+	self addChild: astNode.
 ]
 
 { #category : #accessing }

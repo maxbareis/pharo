@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'hasValidText',
 		'acceptOnCR',
-		'entryCompletion'
+		'entryCompletion',
+		'maxLength'
 	],
 	#category : #'Rubric-Editing-Widgets'
 }
@@ -105,17 +106,29 @@ RubTextFieldMorph >> entryCompletion [
 
 { #category : #accessing }
 RubTextFieldMorph >> entryCompletion: anEntryCompletion [
+
 	entryCompletion := anEntryCompletion.
 	entryCompletion
 		ifNil: [ self withoutDropListButton ]
-		ifNotNil: [ 
-			self withDropListButton.
-			entryCompletion chooseBlock isNil
-			ifTrue: [entryCompletion chooseBlock: [:v | self setText: v. self acceptTextInModel ]]
-			ifFalse: [ | blk | 
-				blk := entryCompletion chooseBlock.
-				entryCompletion chooseBlock: [:v | self setText: v. self acceptTextInModel. blk value: v]]].
+		ifNotNil: [ self withDropListButton.
+			entryCompletion chooseBlock
+				ifNil: [ entryCompletion
+						chooseBlock: [ :v | 
+							self setText: v.
+							self acceptTextInModel
+							]
+					]
+				ifNotNil: [ | blk |
 
+					blk := entryCompletion chooseBlock.
+					entryCompletion
+						chooseBlock: [ :v | 
+							self setText: v.
+							self acceptTextInModel.
+							blk value: v
+							]
+					]
+			]
 ]
 
 { #category : #geometry }
@@ -133,8 +146,7 @@ RubTextFieldMorph >> focusChanged [
 
 { #category : #'model protocol' }
 RubTextFieldMorph >> hasValidText [
-	self flag: #todo. "can discard lazy initialization"
-	^ hasValidText ifNil: [ hasValidText := true ] 
+	^ hasValidText
 ]
 
 { #category : #'model protocol' }
@@ -150,6 +162,7 @@ RubTextFieldMorph >> initialize [
 	self scrollbarsShowNever.
 	self extent: self extent.
 	acceptOnCR := true.
+	maxLength := 0.
 	self beDecrypted
 ]
 
@@ -164,6 +177,26 @@ RubTextFieldMorph >> keyboardFocusChange: aBoolean [
 RubTextFieldMorph >> manageLayoutInBounds: aRectangle [
 	super manageLayoutInBounds: aRectangle.
 	self closeChooser 
+]
+
+{ #category : #accessing }
+RubTextFieldMorph >> maxLength [
+	
+	"Returns the max length of this text field.
+	0 meaning unlimited"
+	^ maxLength
+]
+
+{ #category : #accessing }
+RubTextFieldMorph >> maxLength: anInteger [
+	"Sets the max length of the text field.
+	0 means unlimited"
+	maxLength := anInteger.
+	maxLength = 0 ifTrue: [ ^ self ].
+	
+	"If the contents of this textfield exceed the max length, contents are truncated"
+	self getText size > maxLength
+		ifTrue: [ self setText: (self getText first: maxLength) ]
 ]
 
 { #category : #'model protocol' }

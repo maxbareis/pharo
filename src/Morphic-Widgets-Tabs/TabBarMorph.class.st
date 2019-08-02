@@ -30,6 +30,9 @@ TabBarMorph >> actionsChanged: aTab [
 TabBarMorph >> addActionsFor: aTab [
 	| rightOffset |
 	
+	"This check should maybe not be there but without it the CI fails a lot. Maybe it is due to a race condition?"
+	aTab ifNil: [ ^ self ].
+
 	rightOffset := self actionOffset.
 	
 	aTab hasMenu
@@ -331,7 +334,7 @@ TabBarMorph >> popUpMenu [
 	| menu |
 	
 	menu := self selectedTab menu.
-	menu popUpAt: menuButton bottomRight forHand: ActiveHand in: World
+	menu popUpAt: menuButton bottomRight forHand: ActiveHand in: self currentWorld
 ]
 
 { #category : #private }

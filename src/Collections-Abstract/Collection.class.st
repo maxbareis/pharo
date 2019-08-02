@@ -103,6 +103,9 @@ Collection >> & aCollection [
 
 { #category : #copying }
 Collection >> , aCollection [
+	"Concatenate the receiver with the argument."
+	"#(1 2 3) , #(4 5 6) >>> #(1 2 3 4 5 6)"
+	
 	^self copy addAll: aCollection; yourself
 ]
 
@@ -577,12 +580,15 @@ Collection >> detectSum: aBlock [
 { #category : #enumerating }
 Collection >> difference: aCollection [
 	"Answer the set theoretic difference of two collections. Pay attention that the difference is not commutative, hence the order is important."
+
 	"(#(a b c d e f) difference:  #(a b z k))>>> #(#f #d #e #c)"
+
 	"(#(a b z k) difference: #(a b c d e f)) >>> #(#k #z)"
 
 	| set |
-	set := self asSet.
-	aCollection do: [ :each | set remove: each ifAbsent: [  ] ].
+	set := self asSet
+		removeAllFoundIn: aCollection;
+		yourself.
 	^ self species withAll: set asArray
 ]
 
@@ -896,17 +902,12 @@ Collection >> intersection: aCollection [
 	"Answer the set theoretic intersection of two collections."
 
 	"(#(1 2 3 4) intersection: #(3 4 5)) >>> #(3 4)"
+
 	"(#(1 2 3 4) intersection: #()) >>> #()"
+
 	"(#() intersection: #(1 2 3 4)) >>> #()"
 
-	| set outputSet |
-	set := self asSet.
-	outputSet := Set new.
-	aCollection 
-		do: [ :each | 
-			((set includes: each) and: [ (outputSet includes: each) not ])
-				ifTrue: [ outputSet add: each ] ].
-	^ self species withAll: outputSet asArray
+	^ self species withAll: (self asSet intersection: aCollection) asArray
 ]
 
 { #category : #testing }

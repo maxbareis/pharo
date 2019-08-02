@@ -7,9 +7,8 @@ I am a Slot that does not allocate one field for each slot. Instead, all Boolean
 "
 Class {
 	#name : #BooleanSlot,
-	#superclass : #Slot,
+	#superclass : #DerivedSlot,
 	#instVars : [
-		'baseSlot',
 		'offset'
 	],
 	#category : #'Slot-Examples-Base'
@@ -23,9 +22,9 @@ BooleanSlot >> baseSlotRead: anObject [
 
 { #category : #'code generation' }
 BooleanSlot >> emitStore: methodBuilder [
+	"generate bytecode for 'baseSlot bitAt: index put: <stackTop>'"
 	| tempName |
-
-	tempName := Object new.
+	tempName := '0slotTempForStackManipulation'.
 	methodBuilder
 		send: #asBit;
 		addTemp: tempName;
@@ -41,13 +40,13 @@ BooleanSlot >> emitStore: methodBuilder [
 
 { #category : #'code generation' }
 BooleanSlot >> emitValue: methodBuilder [
-
-		methodBuilder
-			pushInstVar: baseSlot index;
-			pushLiteral: offset;
-			send: #bitAt:;
-			pushLiteral: 1;
-			send: #==.
+	"generate bytecode for '(<baseSlot> bitAt: offset) == 1'"
+	methodBuilder
+		pushInstVar: baseSlot index;
+		pushLiteral: offset;
+		send: #bitAt:;
+		pushLiteral: 1;
+		send: #==.
 	
 	
 ]
@@ -73,24 +72,6 @@ BooleanSlot >> installingIn: aClass [
 	
 ]
 
-{ #category : #testing }
-BooleanSlot >> isAccessedIn: aMethod [
-	(baseSlot isAccessedIn: aMethod) ifFalse: [ ^false ].
-	^super isAccessedIn: aMethod
-]
-
-{ #category : #testing }
-BooleanSlot >> isReadIn: aMethod [
-	(baseSlot isReadIn: aMethod) ifFalse: [ ^false ].
-	^super isReadIn: aMethod
-]
-
-{ #category : #testing }
-BooleanSlot >> isWrittenIn: aMethod [
-	(baseSlot isWrittenIn: aMethod) ifFalse: [ ^false ].
-	^super isWrittenIn: aMethod
-]
-
 { #category : #accessing }
 BooleanSlot >> offset [
 	^offset
@@ -99,15 +80,6 @@ BooleanSlot >> offset [
 { #category : #'meta-object-protocol' }
 BooleanSlot >> read: anObject [
 	^((self baseSlotRead: anObject) bitAt: offset) == 1
-]
-
-{ #category : #TODO }
-BooleanSlot >> todo [
-	'
-    - adding a Booleanslot in between --> offsets need to be updated?
-	 - removing BooleanSlot in the middle	
-	 - adding booleanslot higher in the hierarchy: move baseselot (same as in TODO for DictionarySlot)
-	'
 ]
 
 { #category : #'meta-object-protocol' }

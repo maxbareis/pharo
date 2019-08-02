@@ -328,7 +328,7 @@ SystemWindow >> animateClose [
 	steps := self theme settings animationSettings numberOfSteps.
 	rects := ((steps - 1)/steps to: 0 by: -1/steps) collect: [:x |
 		smallRect interpolateTo: restoredRect at: (20 raisedTo: x) - 1 / 19].
-	World displayWorldSafely.
+	self currentWorld displayWorldSafely.
 	self fastAnimateRectangles: rects
 ]
 
@@ -484,14 +484,16 @@ SystemWindow >> configureForEmbedding [
 
 { #category : #'*Polymorph-Widgets' }
 SystemWindow >> configureForUnembedding [
+
 	"Set up the window so it can be unembedded and placed in the world."
 
-	labelArea owner isNil ifTrue: [
-		self
-			makeBordered;
-			initializeLabelArea;
-			themeChanged;
-			addGrips]
+	labelArea owner
+		ifNil: [ self
+				makeBordered;
+				initializeLabelArea;
+				themeChanged;
+				addGrips
+			]
 ]
 
 { #category : #'*Polymorph-Widgets' }
@@ -610,7 +612,7 @@ SystemWindow >> fastAnimateRectangles: rects [
 		merged := merged merge: r.
 		delay wait].
 	merged := merged expandBy: 1.
-	World invalidRect: merged from: self
+	self currentWorld invalidRect: merged from: self
 ]
 
 { #category : #'*Polymorph-Widgets' }
@@ -845,11 +847,10 @@ SystemWindow >> labelHeight [
 
 { #category : #'*Polymorph-Widgets' }
 SystemWindow >> labelString [
+
 	"Answer the actual label string."
 
-	^label isNil
-		ifTrue: [labelString]
-		ifFalse: [label contents asString]
+	^ label ifNil: [ labelString ] ifNotNil: [ label contents asString ]
 ]
 
 { #category : #'*Polymorph-Widgets' }

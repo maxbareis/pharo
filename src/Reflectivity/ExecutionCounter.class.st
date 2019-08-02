@@ -25,6 +25,16 @@ ExecutionCounter class >> allCounters [
 	^ Counters ifNil: [ Counters := WeakKeyDictionary new ]
 ]
 
+{ #category : #all }
+ExecutionCounter class >> debugWorldMenuOn: aBuilder [
+	<worldMenu>
+	(aBuilder item: #'Reset Counters')
+		order: 0;
+		parent: #Debugging;
+		help: 'Reset the counters on the executions counters.';
+		action: [ ExecutionCounter resetAll ]
+]
+
 { #category : #'instance creation' }
 ExecutionCounter class >> installOn: aRBProgramNode [
 	^self new
@@ -87,7 +97,7 @@ ExecutionCounter >> node: anObject [
 	node := anObject
 ]
 
-{ #category : #counter }
+{ #category : #initialization }
 ExecutionCounter >> reset [
 	count := 0
 ]

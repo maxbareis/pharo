@@ -48,14 +48,18 @@ RBAddMethodChange >> = anAddMethodChange [
 
 { #category : #converting }
 RBAddMethodChange >> asUndoOperation [
-	^ (self changeClass includesSelector: self selector)
-		ifTrue: [ 
-			| oldProtocol |
+
+	^ ( self changeClass includesSelector: self selector )
+		ifTrue: [ | oldProtocol |
+
 			oldProtocol := RBBrowserEnvironment new whichProtocolIncludes: self selector in: self changeClass.
-			oldProtocol isNil
-				ifTrue: [ oldProtocol := #accessing ].
-			RBRefactoryChangeManager changeFactory addMethodSource: (self methodSourceFor: self selector) in: self changeClass classified: oldProtocol ]
-		ifFalse: [ RBRefactoryChangeManager changeFactory removeMethod: selector from: self changeClass ]
+			oldProtocol ifNil: [ oldProtocol := #accessing ].
+			changeFactory
+				addMethodSource: ( self methodSourceFor: self selector )
+				in: self changeClass
+				classified: oldProtocol
+			]
+		ifFalse: [ changeFactory removeMethod: selector from: self changeClass ]
 ]
 
 { #category : #accessing }
@@ -120,9 +124,25 @@ RBAddMethodChange >> hash [
 	^ self parseTree hash
 ]
 
+{ #category : #accessing }
+RBAddMethodChange >> oldVersionTextToDisplay [
+	| class |
+	
+	class := (onSystemDictionary  
+					classNamed: className)
+					ifNil: [ ^ super oldVersionTextToDisplay ].
+				
+	isMeta ifTrue: [ class := class classSide ].
+				
+	^ class methodDict 
+			at: self selector
+			ifPresent: [:method | method sourceCode ]
+			ifAbsent: [ super oldVersionTextToDisplay ]
+]
+
 { #category : #private }
 RBAddMethodChange >> parseTree [
-	^ RBParser parseMethod: source onError: [ :str :pos | ^ nil ]
+	^ RBParser parseMethod: self source onError: [ :str :pos | ^ nil ]
 ]
 
 { #category : #private }
@@ -172,14 +192,21 @@ RBAddMethodChange >> protocols: aCollectionOrString [
 
 { #category : #accessing }
 RBAddMethodChange >> selector [
-	selector isNil ifTrue: [ 
-		selector := RBParser parseMethodPattern: source.
-		selector isNil
-			ifTrue: [ selector := #unknown ] ].
+
+	selector
+		ifNil: [ selector := RBParser parseMethodPattern: source.
+			selector ifNil: [ selector := #unknown ]
+			].
 	^ selector
 ]
 
 { #category : #accessing }
 RBAddMethodChange >> source [
 	^ source
+]
+
+{ #category : #accessing }
+RBAddMethodChange >> textToDisplay [
+
+	^ self source
 ]

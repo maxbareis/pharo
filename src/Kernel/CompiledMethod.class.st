@@ -39,8 +39,10 @@ CompiledMethod class >> basicNew: size [
 
 { #category : #'class initialization' }
 CompiledMethod class >> checkBytecodeSetConflictsInMethodsWith: aBlock [
-	(self allSubInstances detect: aBlock ifNone: [ ])
-		ifNotNil: [ Warning signal: 'There are existing CompiledMethods with a different encoderClass.' ]
+
+	self allSubInstances
+		detect: aBlock
+		ifFound: [ Warning signal: 'There are existing CompiledMethods with a different encoderClass.' ]
 ]
 
 { #category : #'class initialization' }
@@ -324,6 +326,11 @@ CompiledMethod class >> toReturnSelfTrailerBytes: trailer [
 	^self newBytes: 3 trailerBytes: trailer nArgs: 0 nTemps: 0 nStack: 0 nLits: 2 primitive: 256
 ]
 
+{ #category : #'source code management' }
+CompiledMethod >> argumentNames [
+	^ self propertyAt: #argumentNames ifAbsent: [ super argumentNames ]
+]
+
 { #category : #'accessing-backward compatible' }
 CompiledMethod >> category [
 	"Please favor protocol instead of category. We want to have method protocol and class package and tag = a category"
@@ -345,6 +352,9 @@ CompiledMethod >> classBinding: aBinding [
 { #category : #accessing }
 CompiledMethod >> codeForNoSource [
 	"if everything fails, decompile the bytecode"
+	"If there is no compiler, we cannot decompile it"	
+	Smalltalk hasCompiler ifFalse: [ ^ nil ].
+	
 	 ^(self compiler decompileMethod: self) formattedCode
 ]
 
@@ -418,6 +428,9 @@ CompiledMethod >> getSourceFromFile [
 CompiledMethod >> getSourceReplacingSelectorWith: newSelector [
 	| oldKeywords newKeywords source newSource oldSelector start |
 	source := self sourceCode.
+	
+	source ifNil: [ ^ nil ].
+	
 	oldSelector := self selector.
 	oldSelector = newSelector ifTrue: [ ^ source ].
 	
@@ -674,6 +687,12 @@ CompiledMethod >> methodClass: aClass [
 { #category : #accessing }
 CompiledMethod >> name [
 	^ self printString
+]
+
+{ #category : #accessing }
+CompiledMethod >> numberOfReservedLiterals [
+
+	^ 2
 ]
 
 { #category : #accessing }
@@ -1063,7 +1082,8 @@ CompiledMethod >> tags [
 
 { #category : #'source code management' }
 CompiledMethod >> tempNames [
-	^self methodNode tempNames.
+	"on the level of the compiled method, tempNames includes argument names"
+	^self ast argumentNames, self ast temporaryNames
 ]
 
 { #category : #'accessing-tags' }

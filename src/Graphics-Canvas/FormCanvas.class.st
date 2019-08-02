@@ -99,8 +99,8 @@ FormCanvas class >> on: aForm [
 
 { #category : #caching }
 FormCanvas class >> translucentPatterns [
-	TranslucentPatterns isNil ifTrue:[ self initializeTranslucentPatterns ].
-	^ 	TranslucentPatterns  
+
+	^ TranslucentPatterns ifNil: [ self initializeTranslucentPatterns ]
 ]
 
 { #category : #accessing }
@@ -298,11 +298,11 @@ FormCanvas >> fillOval: r color: fillColor borderWidth: borderWidth borderColor:
 FormCanvas >> fillOval: aRectangle fillStyle: aFillStyle borderWidth: bw borderColor: bc [
 	"Fill the given oval."
 
-	self flag: #bob.		"this and its siblings could be moved up to Canvas with the
+	self flag: #pharoFixMe.		"Bob: this and its siblings could be moved up to Canvas with the
 						right #balloonFillOval:..."
 
 	(aFillStyle isBitmapFill and:[aFillStyle isKindOf: InfiniteForm]) ifTrue:[
-		self flag: #fixThis.
+		self flag: #pharoFixMe. "See PluggableCanvas>>fillOval:fillStyle:borderWidth:borderColor:"
 		^self fillOval: aRectangle color: aFillStyle borderWidth: bw borderColor: bc].
 	(aFillStyle isSolidFill) ifTrue:[
 		^self fillOval: aRectangle color: aFillStyle asColor borderWidth: bw borderColor: bc].

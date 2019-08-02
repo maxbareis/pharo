@@ -7,18 +7,15 @@ Keep in mind:
 "
 Class {
 	#name : #PropertySlot,
-	#superclass : #Slot,
-	#instVars : [
-		'baseSlot'
-	],
+	#superclass : #DerivedSlot,
 	#category : #'Slot-Examples-Base'
 }
 
 { #category : #'code generation' }
 PropertySlot >> emitStore: methodBuilder [
+	"generate bytecode for 'baseSlot at: 1 put: <stackTop>'"
 	| tempName |
-
-	tempName := Object new.
+	tempName := '0slotTempForStackManipulation'.
 	methodBuilder
 		addTemp: tempName;
 		storeTemp: tempName;
@@ -32,12 +29,12 @@ PropertySlot >> emitStore: methodBuilder [
 
 { #category : #'code generation' }
 PropertySlot >> emitValue: methodBuilder [
-
-		methodBuilder
-			pushInstVar: baseSlot index;
-			pushLiteral: self name;
-			pushLiteral: nil;
-			send: #at:ifAbsent:
+	"generate bytecode for '<baseSlot> at: name ifAbsent: nil'"
+	methodBuilder
+		pushInstVar: baseSlot index;
+		pushLiteral: self name;
+		pushLiteral: nil;
+		send: #at:ifAbsent:
 	
 	
 ]
@@ -53,24 +50,6 @@ PropertySlot >> installingIn: aClass [
 		ifFound:  [: slot |  baseSlot := slot ]
 		ifNone: [aClass addSlot: (baseSlot := #'_propertyBaseSlot' => BaseSlot default: Dictionary new)].
 	
-]
-
-{ #category : #testing }
-PropertySlot >> isAccessedIn: aMethod [
-	(baseSlot isAccessedIn: aMethod) ifFalse: [ ^false ].
-	^super isAccessedIn: aMethod
-]
-
-{ #category : #testing }
-PropertySlot >> isReadIn: aMethod [
-	(baseSlot isReadIn: aMethod) ifFalse: [ ^false ].
-	^super isReadIn: aMethod
-]
-
-{ #category : #testing }
-PropertySlot >> isWrittenIn: aMethod [
-	(baseSlot isWrittenIn: aMethod) ifFalse: [ ^false ].
-	^super isWrittenIn: aMethod
 ]
 
 { #category : #'meta-object-protocol' }

@@ -71,7 +71,7 @@ Metaclass >> binding [
 	"return an association that can be used as the binding
 	 To share it between methods, reuse an existing one if possible"
 	^self methodDict 
-		ifEmpty: [nil -> self]
+		ifEmpty: [LiteralVariable key: nil value: self]
 		ifNotEmpty: [:dict | dict anyOne classBinding]
 ]
 
@@ -104,31 +104,51 @@ Metaclass >> classSide [
 
 { #category : #'accessing instances and variables' }
 Metaclass >> classVarNames [
+	"Answer the names of the class variables defined in the receiver's instance."
+	
+	self instanceSide ifNil: [ ^ Array new ].
+	^self instanceSide classVarNames
+]
+
+{ #category : #'class variables' }
+Metaclass >> classVariables [
 	"Answer a set of the names of the class variables defined in the receiver's instance."
 	
-	self instanceSide ifNil: [ ^ Set new ].
-	^self instanceSide classVarNames
+	self instanceSide ifNil: [ ^ Array new].
+	^self instanceSide classVariables
 ]
 
 { #category : #'fileIn/Out' }
 Metaclass >> definition [
 	"Refer to the comment in ClassDescription|definition."
 
-	^ String streamContents: 
-		[:strm |
-		strm print: self.
-		
-		(self usesSpecialSlot or: [ Slot showSlotClassDefinition ])
-			ifFalse: [  
-						strm
-							crtab;
-							nextPutAll: 'instanceVariableNames: ';
-							store: self instanceVariablesString]
-			ifTrue: [ 
-						strm
-							crtab;
-							nextPutAll: 'slots: ';
-							nextPutAll: self slotDefinitionString]]
+	(self slotsNeedFullDefinition or: [ Slot showSlotClassDefinition ]) ifTrue: [ 
+		^ self definitionWithSlots ].
+
+	^ self definitionWithoutSlots
+]
+
+{ #category : #'fileIn/Out' }
+Metaclass >> definitionWithSlots [
+	"Refer to the comment in ClassDescription|definition."
+
+	^ String streamContents: [:stream |
+		stream print: self.
+		stream
+			crtab;
+			nextPutAll: 'slots: ';
+			nextPutAll: self slotDefinitionString ]
+]
+
+{ #category : #'fileIn/Out' }
+Metaclass >> definitionWithoutSlots [
+
+	^ String streamContents: [:stream |
+		stream print: self.
+		stream
+			crtab;
+			nextPutAll: 'instanceVariableNames: ';
+			store: self instanceVariablesString ]
 ]
 
 { #category : #accessing }
@@ -209,12 +229,11 @@ Metaclass >> isUsed [
 
 { #category : #accessing }
 Metaclass >> name [
+
 	"Answer a String that is the name of the receiver, either 'Metaclass' or 
 	the name of the receiver's class followed by ' class'."
 
-	^ thisClass isNil
-		ifTrue: [ 'a Metaclass' ]
-		ifFalse: [ thisClass name asString, ' class' ]
+	^ thisClass ifNil: [ 'a Metaclass' ] ifNotNil: [ thisClass name asString , ' class' ]
 ]
 
 { #category : #'instance creation' }
@@ -239,6 +258,14 @@ Metaclass >> obsoleteSubclasses [
 
 	self isMetaclassOfClassOrNil ifTrue: [ ^ #() ].
 	^ self instanceSide obsoleteSubclasses collect: [ :aSubclass | aSubclass classSide ]
+]
+
+{ #category : #'fileIn/Out' }
+Metaclass >> oldDefinition [
+	"Refer to the comment in ClassDescription|definition.
+	 This method is for compatibility with Class>>#oldDefinition"
+
+	^ self definition
 ]
 
 { #category : #compiling }

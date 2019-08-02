@@ -100,7 +100,7 @@ ReleaseTest >> testInstanceSideMethodsWithNilKeyInLastLiteral [
 { #category : #testing }
 ReleaseTest >> testKeyClassesArePresentInStartupList [
 	| keyClasses registeredHandlers |
-	keyClasses := #(#Delay #ProcessorScheduler #InputEventFetcher #Stdio #OSPlatform #UUIDGenerator #DiskStore #WeakArray #BasicCommandLineHandler).
+	keyClasses := #(#Delay #ProcessorScheduler #Stdio #OSPlatform #UUIDGenerator #DiskStore #WeakArray #BasicCommandLineHandler).
 	registeredHandlers := SessionManager default startupList
 		collect: #handledId.
 	
@@ -162,6 +162,20 @@ ReleaseTest >> testObsoleteClasses [
 					print: obsoleteClasses ]]
 ]
 
+{ #category : #testing }
+ReleaseTest >> testPharoVersionFileExists [
+
+	"Test there is a pharo.version file next to this image containing the short version of this pharo image.
+	This file is required by the Pharo launcher to correctly detect the Pharo version we are running on."
+	
+	| pharoVersionFile |
+	pharoVersionFile := FileLocator imageDirectory / 'pharo.version'.
+	self assert: pharoVersionFile exists.
+	self
+		assert: pharoVersionFile readStream contents trimBoth
+		equals: SystemVersion current major asString,  SystemVersion current minor asString
+]
+
 { #category : #'testing - rpackage' }
 ReleaseTest >> testRPackageOrganizer [
 	"Ensure other tests temporary created organizers are collected"
@@ -192,13 +206,14 @@ ReleaseTest >> testShouldFileLocatorBeBeforeSystemSettingsPersistenceInStartupLi
 { #category : #testing }
 ReleaseTest >> testShouldWorldMorphBeAfterFontClassesInStartupList [
 	"This test documents issue https://pharo.manuscript.com/f/cases/17834"
+	"The Startup of he WorldMorph is now done in the UIManagerHandler"
 	| startupList |
 	
 	startupList := (SessionManager default startupList collect: #handledId).
 	
 	#(StrikeFont LogicalFont FreeTypeSettings FreeTypeCache FT2Handle) 
 		do: [ :fontClass |
-			self should: [ (startupList indexOf: #WorldMorph) > (startupList indexOf: #SystemSettingsPersistence) ] ]
+			self should: [ (startupList indexOf: #UIManagerSessionHandler) > (startupList indexOf: #SystemSettingsPersistence) ] ]
 ]
 
 { #category : #'testing - rpackage' }

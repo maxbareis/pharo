@@ -89,18 +89,12 @@ PropertySlotTest >> testRemovePropertySlot [
 	
 	propertySlot := #prop => PropertySlot.
 	
-	aClass := self make: [ :builder |
-		builder 
-			slots: {propertySlot}
-		].
+	aClass := self make: [ :builder | builder slots: {propertySlot} ].
 
 	self assert: (aClass hasSlot: propertySlot).
 	self assert: (aClass classLayout hasSlot: (propertySlot instVarNamed: 'baseSlot')).
 	
-	aClass := self make: [ :builder |
-		builder 
-			slots: {}
-		].
+	aClass := self make: [ :builder | builder  slots: {} ].
 	self deny: (aClass hasSlot: propertySlot).	
 	self deny: (aClass classLayout hasSlot: (propertySlot instVarNamed: 'baseSlot')).
 	self deny: (aClass classLayout hasSlotNamed: #'_propertyBaseSlot').
@@ -171,6 +165,36 @@ PropertySlotTest >> testRemovePropertySlotWithInstance [
 	
 	self assert:	(aClass hasSlot: propertySlot2).
 	self deny: 	(aClass hasSlot: propertySlot1).
+	
+	
+]
+
+{ #category : #tests }
+PropertySlotTest >> testRemovePropertySlotWithTwoInstances [
+	"add two property slots, remove one"
+	
+	| propertySlot1 propertySlot2 instance instance2 |
+	
+	propertySlot1 := #prop1 => PropertySlot.
+	propertySlot2 := #prop2 => PropertySlot.
+	
+	aClass := self make: [ :builder |
+		builder 
+			slots: {propertySlot1 . propertySlot2 }
+		].
+
+	instance := aClass new.
+	instance2 := aClass new.
+
+	propertySlot1 write: 41 to: instance.
+	propertySlot2 write: 42 to: instance.
+
+	self assert: (propertySlot1 read: instance) equals: 41.
+	self assert: (propertySlot2 read: instance) equals: 42.
+	self assert: (propertySlot1 read: instance2) equals: nil.
+	
+	propertySlot1 write: 5 to: instance2.
+	self assert: (propertySlot1 read: instance2) equals: 5.
 	
 	
 ]

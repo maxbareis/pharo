@@ -24,9 +24,9 @@ FFIExternalStructure class >> asExternalTypeOn: generator [
 ]
 
 { #category : #private }
-FFIExternalStructure class >> compileFields: specArray withAccessors: defineBoolean [
-	| offset fieldSpec |
-	
+FFIExternalStructure class >> compileFields: specArray withAccessors: aSymbol [
+	| offset fieldSpec defineBoolean|
+	defineBoolean := aSymbol = #always.
 	fieldSpec := self fieldSpec.
 	offset := 0.	
 	externalStructureAlignment := 1.
@@ -209,7 +209,7 @@ FFIExternalStructure class >> rebuildFieldAccessors [
 		self removeAllOffsetVariables. 
 		self 
 			compileFields: self fields 
-			withAccessors: true]
+			withAccessors: #always]
 ]
 
 { #category : #private }
@@ -229,7 +229,7 @@ FFIExternalStructure class >> removeAllOffsetVariables [
 		thenDo: [ :each | self removeClassVarNamed: each ]
 ]
 
-{ #category : #'class management' }
+{ #category : #initialization }
 FFIExternalStructure class >> reset [
 	"Reset this structure and all its nested structures"
 	self resetStructureIfNotIn: Set new
