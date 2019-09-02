@@ -775,7 +775,7 @@ ClassDescription >> instVarMappingFrom: oldClass [
 ClassDescription >> instVarNames [
 	"Answer an Array of the receiver's instance variable names."
 
-	^self localSlots collect: [ :each | each name ]
+	^self slots collect: [ :each | each name ]
 ]
 
 { #category : #'accessing parallel hierarchy' }
@@ -813,6 +813,11 @@ ClassDescription >> isClassSide [
 	"Point class isClassSide >>> true"
 	
 	^self == self classSide
+]
+
+{ #category : #testing }
+ClassDescription >> isDeprecated [
+	^ self package isDeprecated
 ]
 
 { #category : #'accessing parallel hierarchy' }
